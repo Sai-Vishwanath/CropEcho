@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Dashboard | CropEcho</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <style>
+        .navbar { z-index: 1000 !important; position: sticky; top: 0; }
+        .dashboard-main { padding: 2rem 8% 5rem; display: grid; grid-template-columns: 1.4fr 1fr; gap: 2.5rem; }
+        .dash-card { background: var(--white, #ffffff); border-radius: 24px; padding: 2.5rem; box-shadow: var(--shadow-md, 0 4px 20px rgba(0,0,0,0.05)); border: 1px solid rgba(0,0,0,0.03); }
+        #map { height: 550px; border-radius: 24px; border: 3px solid var(--light-green); z-index: 1; margin-bottom: 2rem;}
+        .leaflet-container { cursor: crosshair !important; }
+
+        /* Growth Stage Styles */
+        .stage-node { width: 18px; height: 18px; border-radius: 50%; border: 2px solid white; transition: all 0.5s ease; }
+        .node-active { background: #2e7d32; box-shadow: 0 0 10px #2e7d32; transform: scale(1.2); }
+        .node-inactive { background: #cbd5e1; }
+        
+        #registration-modal { display: none; position: fixed; z-index: 2100; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2.5rem; border-radius: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); width: 420px; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2099; }
+        .form-group { margin-bottom: 1.2rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 700; color: #1b4332; }
+        .form-group input, .form-group select { width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 12px; font-family: inherit; }
+
+        .quick-jump-bar { background: var(--white, #ffffff); padding: 1rem 8%; border-bottom: 1px solid rgba(0,0,0,0.03); display: flex; gap: 1rem; align-items: center; }
+        .btn-jump { text-decoration: none; color: var(--primary-green, #2d6a4f); background: var(--light-green, #e8f5e9); padding: 0.6rem 1.2rem; border-radius: 12px; font-weight: 600; font-size: 0.85rem; transition: 0.3s ease; cursor: pointer; border: none; }
+        .btn-jump:hover { background: var(--primary-green, #2d6a4f); color: white; transform: translateY(-2px); }
+        
+        .tab-active { background: #2d6a4f; color: white !important; border: 2px solid #2d6a4f; }
+        .tab-inactive { background: transparent; color: #2d6a4f !important; border: 2px solid #2d6a4f; }
+        .metric-badge { background: #f8f9fa; padding: 1rem; border-radius: 16px; text-align: center; border: 1px solid rgba(0,0,0,0.02); }
+
+        .connector { flex: 1; height: 3px; margin: 0 5px; margin-bottom: 18px; }
+        .bg-active { background: #2e7d32; }
+        .bg-inactive { background: #cbd5e1; }
+        .text-active { color: #2e7d32; }
+        .text-inactive { color: #64748b; }
+
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
+        .fusion-alert { animation: pulse-red 2s infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    
+    <div class="modal-overlay" id="modal-overlay"></div>
+    <div id="registration-modal">
+        <h3 style="margin-top:0; color: #1b4332;"><i class="ph-fill ph-plus-circle"></i> Register This Farm</h3>
+        <p style="font-size: 0.85rem; color: #666; margin-bottom: 1.5rem;">Give your field a name to save it to your account dashboard.</p>
+        
+        <form action="/add-farm" method="POST">
+            <input type="hidden" name="lat" id="form-lat">
+            <input type="hidden" name="lon" id="form-lon">
+            <input type="hidden" name="boundary" id="form-boundary">
+            
+            <div class="form-group">
+                <label>Farm Name</label>
+                <input type="text" name="farm_name" placeholder="e.g. North Paddy Plot" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Crop Type</label>
+                <select name="crop_type">
+                    <option value="Wheat" {% if current_crop == 'Wheat' %}selected{% endif %}>Wheat</option>
+                    <option value="Paddy" {% if current_crop == 'Paddy' %}selected{% endif %}>Paddy</option>
+                    <option value="Cotton" {% if current_crop == 'Cotton' %}selected{% endif %}>Cotton</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 2rem;">
+                <button type="button" class="btn-jump" style="background: #f1f5f9; color: #475569; flex: 1;" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn-jump" style="background: #2d6a4f; color: white; flex: 2;">Save Farm</button>
+            </div>
+        </form>
+    </div>
+
+    <input type="hidden" id="hist-data" value='{{ history_data | tojson | safe }}'>
+    <input type="hidden" id="hist-labels" value='{{ history_labels | tojson | safe }}'>
+    <input type="hidden" id="moisture-now" value='{{ sensors.soil_moisture | default(50) }}'>
+    <input type="hidden" id="farm-boundary-data" value='{{ farm.boundary_coords | safe if farm else "" }}'>
+
+    <nav class="navbar">
+        <a href="/" class="brand"><i class="ph-fill ph-leaf"></i> CropEcho</a>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/disease-check">Disease Check</a>
+            <a href="/grain-check">Grain Quality</a>
+        </div>
+    </nav>
+
+    <div class="quick-jump-bar">
+        <span style="font-weight: 700; color: #1b4332;">Explore Hubs:</span>
+        <a href="/dashboard?lat=16.3067&lon=80.4365&crop=Paddy" class="btn-jump">Guntur (Paddy)</a>
+        <a href="/dashboard?lat=30.9010&lon=75.8573&crop=Wheat" class="btn-jump">Ludhiana (Wheat)</a>
+        <a href="/dashboard?lat=21.1458&lon=79.0882&crop=Cotton" class="btn-jump">Nagpur (Cotton)</a>
+    </div>
+
+    <main class="dashboard-main">
+        {% set ndvi_val = ndvi | default(0.65) | float %}
+        {% set ndvi_color = "#2D6A4F" if ndvi_val >= 0.55 else "#d97706" if ndvi_val > 0.4 else "#ef4444" %}
+        
+        <div class="map-col">
+            <div class="dash-card" style="margin-bottom: 2rem; background: #f8fafc; border: 1px solid #e2e8f0;">
+                <h3 style="color: #1b4332; margin-top: 0; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;">
+                    <i class="ph-fill ph-chart-bar"></i> Growth Stage: {{ stage_name | default('Development') }}
+                </h3>
+    
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
+                    {% for i in range(1, 7) %}
+                        {% set is_active = i <= stage_num | default(1) %}
+                        
+                        <div style="text-align: center;">
+                            <div class="stage-node {{ 'node-active' if is_active else 'node-inactive' }}"></div>
+                            <small style="font-size: 0.65rem; font-weight: bold;" class="{{ 'text-active' if is_active else 'text-inactive' }}">
+                                Stage {{ i }}
+                            </small>
+                        </div>
+                        
+                        {% if i < 6 %}
+                            <div class="connector {{ 'bg-active' if is_active else 'bg-inactive' }}"></div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="dash-card">
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 1.5rem; overflow-x: auto; padding-bottom: 5px;">
+
+                    <a href="/dashboard" class="btn-jump {% if not farm %}tab-active{% else %}tab-inactive{% endif %}">
+                        <i class="ph-bold ph-plus"></i> Free Explorer
+                    </a>
+                    {% for f in all_farms %}
+                    <a href="/dashboard?farm_id={{ f.id }}" class="btn-jump {% if farm and farm.id == f.id %}tab-active{% else %}tab-inactive{% endif %}" style="white-space: nowrap;">
+                        <i class="ph-fill ph-map-pin"></i> {{ f.name }}
+                    </a>
+                    {% endfor %}
+                </div>
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                    <h3 style="margin:0; color: #1b4332;">
+                        {% if farm %}{{ farm.name }}{% else %}Satellite Field Explorer{% endif %}
+                    </h3>
+                    <span style="font-size: 0.75rem; background: #e8f5e9; padding: 4px 10px; border-radius: 20px; color: #2d6a4f; font-weight: 600;">
+                        Live Satellite View
+                    </span>
+                </div>
+                
+                <div id="map"></div>
+                
+                <div style="padding: 1.5rem; background: #f0fdf4; border-radius: 18px; display: flex; align-items: center; gap: 1rem;">
+                    <i class="ph-fill ph-satellite-lite" style="font-size: 2.5rem; color: #2d6a4f;"></i>
+                    <div>
+                        <h4 style="margin:0; color: #1b4332;">Vegetation Health (NDVI)</h4>
+                        <p style="margin:0; font-size: 1.5rem; font-weight: 700; color: #2d6a4f;">
+                            {{ ndvi_val }} — {% if ndvi_val >= 0.55 %}Healthy Growth{% else %}Stress Detected{% endif %}
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="data-col" style="display: flex; flex-direction: column; gap: 2rem;">
+            
+            <div class="dash-card">
+                <h2 style="color: #1b4332; margin-bottom: 1.5rem;"><i class="ph ph-activity"></i> Field Vitals</h2>
+                
+                {% set moisture_val = sensors.soil_moisture | default(50) | float %}
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <p style="color: #6b7280; margin:0;">Real-time Soil Moisture</p>
+                    <h1 id="live-moisture-text" style="font-size: 4rem; color: #2d6a4f; margin:0;">{{ moisture_val }}%</h1>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                    <div class="metric-badge"><small style="display:block; color: #6b7280;">Nitrogen</small><strong>{{ sensors.nitrogen }}</strong></div>
+                    <div class="metric-badge"><small style="display:block; color: #6b7280;">Phosphorus</small><strong>{{ sensors.phosphorus }}</strong></div>
+                    <div class="metric-badge"><small style="display:block; color: #6b7280;">Potassium</small><strong>{{ sensors.potassium }}</strong></div>
+                </div>
+
+                <canvas id="moistureChart" style="margin-top: 2rem;"></canvas>
+            </div>
+
+            {% if ndvi_val > 0.1 and ndvi_val < 0.55 %}
+            <div class="fusion-alert" style="background: #fee2e2; border: 2px solid #ef4444; padding: 20px; border-radius: 24px; text-align: center;">
+                <h3 style="color: #991b1b; margin-top: 0;"><i class="ph-fill ph-warning"></i> Biological Stress Alert</h3>
+                <p style="color: #7f1d1d; font-size: 0.95rem; line-height: 1.4; margin-bottom: 15px;">
+                    NDVI health is low (<b>{{ ndvi_val }}</b>). A vision scan is advised to rule out disease.
+                </p>
+                <a href="/disease-check" class="btn-jump" style="background: #ef4444; color: white; border: none; display: inline-block;">Scan Crop Leaf →</a>
+            </div>
+            {% endif %}
+
+            <div class="dash-card" style="background: #fffbeb; border: 2px solid #f59e0b;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                    <h3 style="color: #b45309; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="ph-fill ph-brain"></i> True Fusion AI
+                    </h3>
+                    
+                    <label for="leaf-upload" class="btn-jump" style="background: #b45309; color: white; cursor: pointer; padding: 6px 12px; font-size: 0.8rem; border-radius: 8px;">
+                        <i class="ph-bold ph-camera"></i> Scan Leaf
+                    </label>
+                    <input type="file" id="leaf-upload" style="display: none;" accept="image/*" onchange="runFusionScan(this)">
+                </div>
+
+                <div id="fusion-loading" style="display: none; color: #b45309; font-weight: bold; margin-bottom: 10px;">
+                    <i class="ph-bold ph-spinner-gap" style="animation: spin 1s linear infinite;"></i> Running Tri-Modal Analysis...
+                </div>
+                
+                <p id="ai-advice" style="margin:0; font-size: 1rem; color: #92400e; line-height: 1.6; transition: 0.3s;">
+                    {{ ai_advice }}
+                </p>
+            </div>
+            
+        </div>
+    </main>
+    
+
+    <footer>
+        <p>&copy; 2026 CropEcho Platform | Real-Time Geospatial Agriculture</p>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
+    
+    <script>
+        const lat = parseFloat("{{ lat }}") || 16.3067;
+        const lon = parseFloat("{{ lon }}") || 80.4365;
+        const ndviColor = '{{ ndvi_color }}';
+
+        // --- MAP INIT ---
+        const map = L.map('map', { zoomControl: false }).setView([lat, lon], 14);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri'
+        }).addTo(map);
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        map.pm.addControls({
+            position: 'topleft', drawMarker: false, drawPolyline: false, drawCircle: false, 
+            drawCircleMarker: false, drawText: false, drawRectangle: true, drawPolygon: true,
+            editMode: true, dragMode: true, cutPolygon: false, removalMode: true
+        });
+
+        // --- POLYGONS ---
+        const boundaryElement = document.getElementById('farm-boundary-data');
+        const boundaryDataRaw = boundaryElement ? boundaryElement.value : "";
+        
+        if (boundaryDataRaw) {
+            const boundaryGeoJSON = JSON.parse(boundaryDataRaw);
+            const farmLayer = L.geoJSON(boundaryGeoJSON, {
+                style: { color: '#f59e0b', weight: 6, fillColor: '#fcd34d', fillOpacity: 0.6 }
+            }).addTo(map).bindPopup("<b>{{ farm.name if farm else 'Farm' }}</b><br>NDVI: {{ ndvi_val }}");
+            
+            map.fitBounds(farmLayer.getBounds(), { padding: [50, 50] });
+
+            setTimeout(() => {
+                farmLayer.setStyle({ color: ndviColor, weight: 3, fillColor: ndviColor, fillOpacity: 0.25, transition: 'all 1s ease' });
+            }, 2500);
+        } else {
+            L.circle([lat, lon], { color: ndviColor, fillColor: ndviColor, fillOpacity: 0.25, radius: 500 }).addTo(map).bindPopup("<b>Satellite Zone</b>");
+            L.marker([lat, lon]).addTo(map);
+        }
+
+        // --- DRAW EVENTS ---
+        map.on('pm:create', (e) => {
+            const layer = e.layer;
+            const center = layer.getBounds().getCenter();
+            document.getElementById('form-lat').value = center.lat.toFixed(6);
+            document.getElementById('form-lon').value = center.lng.toFixed(6);
+            document.getElementById('form-boundary').value = JSON.stringify(layer.toGeoJSON());
+            document.getElementById('modal-overlay').style.display = 'block';
+            document.getElementById('registration-modal').style.display = 'block';
+        });
+
+        function closeModal() {
+            document.getElementById('modal-overlay').style.display = 'none';
+            document.getElementById('registration-modal').style.display = 'none';
+            map.eachLayer((layer) => { if (layer instanceof L.Polygon && !layer._url) { layer.remove(); } });
+        }
+
+        map.on('click', function(e) {
+            if (!map.pm.globalDrawModeEnabled()) {
+                window.location.href = `/dashboard?lat=${e.latlng.lat.toFixed(4)}&lon=${e.latlng.lng.toFixed(4)}&crop={{ current_crop }}`;
+            }
+        });
+
+        // --- CHART ENGINE ---
+        let histData = [parseFloat(document.getElementById('moisture-now').value)];
+        let histLabels = ["Now"];
+        
+        try {
+            const rawD = document.getElementById('hist-data').value;
+            const rawL = document.getElementById('hist-labels').value;
+            if (rawD && rawD !== "[]" && rawD !== "None") histData = JSON.parse(rawD);
+            if (rawL && rawL !== "[]" && rawL !== "None") histLabels = JSON.parse(rawL);
+        } catch(err) {
+            console.error("Chart parse fallback triggered:", err);
+        }
+
+        const ctx = document.getElementById('moistureChart').getContext('2d');
+        const myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: histLabels,
+                datasets: [{
+                    label: 'Moisture History', data: histData, borderColor: '#2D6A4F',
+                    backgroundColor: 'rgba(45, 106, 79, 0.1)', fill: true, tension: 0.4,
+                    pointRadius: 4, pointBackgroundColor: '#2D6A4F'
+                }]
+            },
+            options: {
+                responsive: true, plugins: { legend: { display: false } },
+                scales: { x: { grid: { display: false } }, y: { beginAtZero: false, grid: { color: 'rgba(0,0,0,0.05)' } } }
+            }
+        });
+        
+        // --- POLLING ENGINE ---
+        const currentFarmId = "{{ farm.id if farm else '' }}";
+
+        if (currentFarmId) {
+            setInterval(() => {
+                fetch(`/api/farm/${currentFarmId}/latest`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.moisture) {
+                            const textElement = document.getElementById('live-moisture-text');
+                            if (textElement) textElement.innerText = data.moisture + '%';
+
+                            if (typeof myChart !== 'undefined') {
+                                const labels = myChart.data.labels;
+                                const points = myChart.data.datasets[0].data;
+
+                                if (labels[labels.length - 1] !== data.time) {
+                                    labels.push(data.time);
+                                    points.push(data.moisture);
+                                    if (labels.length > 15) { labels.shift(); points.shift(); }
+                                    myChart.update();
+                                }
+                            }
+                        }
+                    }).catch(err => console.error("Telemetry link lost:", err));
+            }, 5000);
+        }
+
+        // --- FUSION SCAN ---
+        function runFusionScan(input) {
+            if (!currentFarmId) {
+                alert("Please select a registered farm first!");
+                return;
+            }
+            if (!input.files[0]) return;
+
+            const formData = new FormData();
+            formData.append("file", input.files[0]);
+
+            document.getElementById('fusion-loading').style.display = 'block';
+            document.getElementById('ai-advice').style.opacity = '0.3';
+
+            fetch(`/api/farm/${currentFarmId}/fusion-scan`, {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('fusion-loading').style.display = 'none';
+                document.getElementById('ai-advice').style.opacity = '1';
+
+                if (data.advice) {
+                    document.getElementById('ai-advice').innerHTML = `
+                        <span style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem;">
+                            VISION DIAGNOSIS: ${data.disease.toUpperCase()}
+                        </span><br><br>${data.advice}`;
+                }
+            })
+            .catch(err => {
+                document.getElementById('fusion-loading').style.display = 'none';
+                document.getElementById('ai-advice').style.opacity = '1';
+                alert("Scan failed. Check terminal for errors.");
+            });
+        }
+    </script>
+</body>
+</html>

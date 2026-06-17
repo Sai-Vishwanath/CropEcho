@@ -1,0 +1,21 @@
+# Environments
+venv/
+env/
+.env
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# Database
+cropecho.db
+instance/
+
+# Uploads (Keep the folder, ignore the files inside)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# AI Vector Database
+chroma_db/
+
+Crop API Keys.txt

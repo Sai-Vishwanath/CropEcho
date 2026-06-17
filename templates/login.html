@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login | CropEcho</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        body { background: #f8fafc; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif; }
+        .auth-card { background: white; padding: 3rem; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); width: 100%; max-width: 400px; text-align: center; border: 1px solid #f1f5f9; }
+        .form-group { text-align: left; margin-bottom: 1.5rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: bold; color: #1e293b; }
+        .form-group input { width: 100%; padding: 0.8rem; border: 2px solid #e2e8f0; border-radius: 12px; box-sizing: border-box; }
+        .btn-submit { width: 100%; padding: 1rem; background: #2d6a4f; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-submit:hover { background: #1b4332; }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <h1 style="color: #2d6a4f; margin-bottom: 0.5rem;"><i class="ph-fill ph-leaf"></i> CropEcho</h1>
+        <p style="color: #64748b; margin-bottom: 2rem;">Sign in to your command center.</p>
+
+        <form method="POST">
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" name="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" required>
+            </div>
+            <button type="submit" class="btn-submit">Login</button>
+        </form>
+
+        <p style="margin-top: 2rem; color: #64748b; font-size: 0.9rem;">
+            New farmer? <a href="/register" style="color: #2d6a4f; font-weight: bold;">Create an account</a>
+        </p>
+    </div>
+</body>
+</html>

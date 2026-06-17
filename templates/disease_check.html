@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wheat Disease Classification | CropEcho</title>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { background: #f8fafc; font-family: 'Segoe UI', sans-serif; margin: 0; }
+        
+        /* Unified Navbar */
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 1rem 5%; background: white; box-shadow: 0 4px 10px rgba(0,0,0,0.05); position: sticky; top: 0; z-index: 1000;}
+        .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+        .nav-links a { text-decoration: none; color: #475569; font-weight: 600; transition: 0.2s; font-size: 0.95rem; }
+        .nav-links a:hover { color: #2e7d32; }
+        .btn-nav-primary { background: #2e7d32; color: white !important; padding: 0.5rem 1.2rem; border-radius: 8px; font-weight: bold; }
+        .auth-divider { width: 1px; height: 20px; background: #e2e8f0; margin: 0 10px; }
+        
+        /* Two-Column Layout */
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 1200px; margin: 3rem auto; padding: 0 20px; min-height: 60vh;}
+        .card { background: white; padding: 2.5rem; border-radius: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.05); }
+        
+        /* Upload Zone styles merged with your classes */
+        .upload-zone { border: 2px dashed #cbd5e1; border-radius: 16px; padding: 4rem 2rem; text-align: center; cursor: pointer; transition: 0.3s; background: #f8fafc; margin-top: 1.5rem; display: flex; flex-direction: column; align-items: center; }
+        .upload-zone:hover, .upload-zone.dragover { border-color: #2e7d32; background: #f0fdf4; }
+        
+        @media (max-width: 800px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    
+    <nav class="navbar">
+        <a href="/" style="font-size: 1.5rem; font-weight: bold; color: #2e7d32; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+            <i class="ph-fill ph-leaf"></i> CropEcho
+        </a>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/disease-check" style="color: #2e7d32;">Disease Check</a>
+            <a href="/grain-check">Grain Quality</a>
+            
+            <div class="auth-divider"></div>
+
+            {% if current_user.is_authenticated %}
+                <span style="color: #64748b;"><b>{{ current_user.username }}</b></span>
+                <a href="/dashboard" class="btn-nav-primary">Dashboard</a>
+                <a href="/logout" style="color: #ef4444;">Logout</a>
+            {% else %}
+                <a href="/login">Sign In</a>
+                <a href="/register" class="btn-nav-primary">Create Account</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <main class="main-grid">
+        
+        <div class="card">
+            <h2 style="color: #1b4332; margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                <i class="ph-bold ph-scan" style="color: #2e7d32; font-size: 2rem;"></i> Disease Scanner
+            </h2>
+            <p style="color: #64748b; line-height: 1.5;">Upload a clear image of a wheat leaf. Our ResNet-50 model will analyze the cellular structure for biological stress.</p>
+            
+            <form action="/disease-check" method="POST" enctype="multipart/form-data" id="upload-form">
+                <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+                    <i class="ph ph-upload-simple" style="font-size: 3.5rem; color: #94a3b8; margin-bottom: 10px;"></i>
+                    <span style="font-weight: bold; color: #334155;">Drag & Drop your leaf image here</span>
+                    <p style="margin-top: 0.5rem; font-size: 0.95rem; color: #94a3b8;">or click to browse files</p>
+                    <input type="file" id="file-input" name="file" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                </div>
+            </form>
+        </div>
+
+        <div class="card" style="background: #f0fdf4; border: 2px solid #bbf7d0;">
+            {% if result %}
+                <h2 style="color: #166534; margin-top: 0; text-align: center;"><i class="ph-fill ph-check-circle"></i> Analysis Complete</h2>
+                <div style="background: white; padding: 20px; border-radius: 12px; margin-top: 1.5rem; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                    
+                    <img src="{{ url_for('static', filename='uploads/' + image_path.split('\\')[-1].split('/')[-1]) }}" 
+                         alt="Analyzed Leaf" style="max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 1rem; border: 1px solid #ddd;">
+                    
+                    <p style="font-size: 1.25rem; font-weight: 600; color: #14532d; margin: 0;">{{ result }}</p>
+                    
+                    <button onclick="window.location.href='/disease-check'" style="margin-top: 1.5rem; padding: 0.8rem 1.5rem; background: #2e7d32; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s;">
+                        Clear & Try Another
+                    </button>
+                </div>
+            {% else %}
+                <h2 style="color: #166534; margin-top: 0;"><i class="ph-fill ph-info"></i> How it Works</h2>
+                <ul style="color: #166534; line-height: 2; padding-left: 20px; font-size: 1.05rem; margin-top: 2rem;">
+                    <li><b>Step 1:</b> Take a well-lit photo of the affected crop leaf.</li>
+                    <li><b>Step 2:</b> Ensure the leaf takes up at least 70% of the frame.</li>
+                    <li><b>Step 3:</b> Drag and drop the image into the scanner.</li>
+                    <li><b>Step 4:</b> The AI will automatically output a diagnosis.</li>
+                </ul>
+                <div style="text-align: center; margin-top: 4rem; color: #86efac;">
+                    <i class="ph-fill ph-brain" style="font-size: 8rem; opacity: 0.3;"></i>
+                </div>
+            {% endif %}
+        </div>
+
+    </main>
+
+    <footer style="text-align: center; padding: 20px; color: #666; background: transparent; border-top: 1px solid #e2e8f0; margin-top: auto;">
+        <p>&copy; 2026 CropEcho Platform. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const uploadForm = document.getElementById('upload-form');
+
+        // Drag and drop logic
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, false);
+        });
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('dragover'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('dragover'), false);
+        });
+
+        // Handle dropped files
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            fileInput.files = files;
+            uploadForm.submit(); // Automatically submit when file is dropped
+        });
+    </script>
+</body>
+</html>

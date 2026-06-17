@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CropEcho | AI-Powered Agriculture</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        /* Transparent Glass Navbar for the Homepage */
+        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 5%; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px); position: absolute; top: 0; left: 0; right: 0; z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.1);}
+        .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+        .nav-links a { text-decoration: none; color: #f8fafc; font-weight: 600; transition: 0.2s; font-size: 0.95rem; }
+        .nav-links a:hover { color: #86efac; }
+        .btn-nav-primary { background: #2e7d32; color: white !important; padding: 0.5rem 1.2rem; border-radius: 8px; font-weight: bold; }
+        .btn-nav-primary:hover { background: #1b4332; }
+        .auth-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.3); margin: 0 10px; }
+    </style>
+</head>
+<body style="background: #f0f4f0; font-family: 'Segoe UI', sans-serif; margin: 0;">
+
+    <!-- UNIFIED NAVBAR -->
+    <nav class="navbar">
+        <a href="/" style="font-size: 1.5rem; font-weight: bold; color: #ffffff; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+            <i class="ph-fill ph-leaf" style="color: #4ade80;"></i> CropEcho
+        </a>
+        <div class="nav-links">
+            <a href="/">Home</a>
+            <a href="/disease-check">Disease Check</a>
+            <a href="/grain-check">Grain Quality</a>
+            
+            <div class="auth-divider"></div>
+
+            {% if current_user.is_authenticated %}
+                <span style="color: #cbd5e1;"><b>{{ current_user.username }}</b></span>
+                <a href="/dashboard" class="btn-nav-primary">Dashboard</a>
+                <a href="/logout" style="color: #fca5a5;">Logout</a>
+            {% else %}
+                <a href="/login">Sign In</a>
+                <a href="/register" class="btn-nav-primary">Create Account</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- HERO SECTION -->
+    <div class="hero-section" style="background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=1350&q=80'); height: 50vh; background-size: cover; background-position: center; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding-top: 60px;">
+        <h1 style="font-size: 3.5rem; margin-bottom: 0;"><i class="ph-fill ph-leaf"></i> CropEcho India</h1>
+        <p style="font-size: 1.2rem; margin-bottom: 2rem; color: #e2e8f0;">Tri-Modal AI Fusion: Satellite + Sensors + Vision</p>
+        
+        {% if not current_user.is_authenticated %}
+        <div style="display: flex; gap: 15px;">
+            <a href="/register" style="background: #2e7d32; color: white; padding: 12px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; transition: 0.3s;">Get Started</a>
+            <a href="/login" style="background: rgba(255,255,255,0.1); border: 2px solid white; color: white; padding: 10px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; transition: 0.3s; backdrop-filter: blur(5px);">Farmer Login</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- CARDS -->
+    <main class="container" style="max-width: 1200px; margin: -50px auto 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; padding: 0 20px; position: relative; z-index: 10;">
+        <a href="/dashboard" style="text-decoration: none; color: inherit;">
+            <div class="card" style="background: white; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1); transition: 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+                <i class="ph ph-chart-line-up" style="font-size: 3rem; color: #2e7d32;"></i>
+                <h2>Field Dashboard</h2>
+                <p>Explore the map, view NDVI, or register a new farm boundary.</p>
+                <span style="color: #2e7d32; font-weight: bold;">Explore Map →</span>
+            </div>
+        </a>
+        <a href="/disease-check" style="text-decoration: none; color: inherit;">
+            <div class="card" style="background: white; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1); transition: 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+                <i class="ph ph-scan" style="font-size: 3rem; color: #2e7d32;"></i>
+                <h2>Disease Diagnosis</h2>
+                <p>Upload leaf images for ResNet-50 powered wheat disease identification.</p>
+                <span style="color: #2e7d32; font-weight: bold;">Scan Leaf →</span>
+            </div>
+        </a>
+        <a href="/grain-check" style="text-decoration: none; color: inherit;">
+            <div class="card" style="background: white; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1); transition: 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
+                <i class="ph ph-grains" style="font-size: 3rem; color: #2e7d32;"></i>
+                <h2>Grain Assessment</h2>
+                <p>YOLOv5 analysis for seed counting and quality grading.</p>
+                <span style="color: #2e7d32; font-weight: bold;">Check Quality →</span>
+            </div>
+        </a>
+    </main>
+
+    <div style="max-width: 1200px; margin: 0 auto 50px; padding: 0 20px;">
+        <h2 style="color: #1b4332; border-bottom: 2px solid #c8e6c9; padding-bottom: 10px; margin-bottom: 20px;">
+            <i class="ph-fill ph-farm"></i> My Registered Farms
+        </h2>
+
+        {% if current_user.is_authenticated %}
+            {% if farms and farms|length > 0 %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+                {% for farm in farms %}
+                <div style="background: white; padding: 25px; border-radius: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 6px solid #2e7d32; transition: 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
+                    <h3 style="margin: 0 0 10px; color: #1b4332; font-size: 1.4rem;">{{ farm.name }}</h3>
+                    <span style="background: #e8f5e9; color: #2e7d32; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">
+                        <i class="ph-bold ph-plant"></i> {{ farm.crop_type }}
+                    </span>
+                    <div style="margin-top: 25px;">
+                        <a href="/dashboard?farm_id={{ farm.id }}" style="display: block; text-align: center; background: #f0f4f0; color: #2e7d32; text-decoration: none; padding: 12px; border-radius: 10px; font-weight: bold; transition: 0.3s;" onmouseover="this.style.background='#e8f5e9'" onmouseout="this.style.background='#f0f4f0'">
+                            Load Field Data →
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 50px 20px; background: white; border-radius: 20px; border: 2px dashed #b0bec5;">
+                <i class="ph-fill ph-map-trifold" style="font-size: 4rem; color: #90a4ae; margin-bottom: 15px;"></i>
+                <h3 style="color: #37474f; margin: 0 0 10px;">No Farms Registered Yet</h3>
+                <p style="color: #607d8b; margin: 0 0 20px;">Draw a boundary on the map to save your first field.</p>
+                <a href="/dashboard" style="background: #2e7d32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: bold;">Open Map Explorer</a>
+            </div>
+            {% endif %}
+        {% else %}
+        <div style="text-align: center; padding: 50px 20px; background: white; border-radius: 20px; border: 2px dashed #b0bec5;">
+            <i class="ph-fill ph-lock-key" style="font-size: 4rem; color: #90a4ae; margin-bottom: 15px;"></i>
+            <h3 style="color: #37474f; margin: 0 0 10px;">Sign in to view your farms</h3>
+            <p style="color: #607d8b; margin: 0 0 20px;">Securely manage and monitor your agricultural data.</p>
+            <a href="/login" style="background: #2e7d32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: bold;">Log In Now</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <footer style="text-align: center; padding: 20px; color: #666; background: white; border-top: 1px solid #e0e0e0;">
+        <p>&copy; 2026 CropEcho Platform | Guntur, Andhra Pradesh</p>
+    </footer>
+</body>
+</html>

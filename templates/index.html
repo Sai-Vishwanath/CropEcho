@@ -2,25 +2,171 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>CropEcho | AI-Powered Agriculture</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CropEcho | Portable Agronomy In Every Field</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
     <style>
-        /* Transparent Glass Navbar for the Homepage */
-        .navbar { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 5%; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px); position: absolute; top: 0; left: 0; right: 0; z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.1);}
-        .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+        :root {
+            --primary: #2e7d32;
+            --primary-dark: #1b4332;
+            --primary-light: #e8f5e9;
+            --bg-color: #f8fafc;
+            --text-main: #334155;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+        }
+
+        body { 
+            font-family: 'Inter', 'Segoe UI', sans-serif; 
+            margin: 0; 
+            background: var(--bg-color); 
+            color: var(--text-main);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        .navbar { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 1.2rem 5%; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px); 
+            position: absolute; top: 0; left: 0; right: 0; z-index: 1000; 
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+        }
+        .nav-brand { font-size: 1.6rem; font-weight: 800; color: #ffffff; text-decoration: none; display: flex; align-items: center; gap: 8px; letter-spacing: -0.5px;}
+        .nav-links { display: flex; gap: 1.8rem; align-items: center; }
         .nav-links a { text-decoration: none; color: #f8fafc; font-weight: 600; transition: 0.2s; font-size: 0.95rem; }
-        .nav-links a:hover { color: #86efac; }
-        .btn-nav-primary { background: #2e7d32; color: white !important; padding: 0.5rem 1.2rem; border-radius: 8px; font-weight: bold; }
-        .btn-nav-primary:hover { background: #1b4332; }
-        .auth-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.3); margin: 0 10px; }
+        .nav-links a:hover { color: #4ade80; }
+        .btn-nav-primary { background: var(--primary); color: white !important; padding: 0.6rem 1.4rem; border-radius: 8px; font-weight: 700; transition: 0.3s;}
+        .btn-nav-primary:hover { background: var(--primary-dark); }
+        .auth-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.3); margin: 0 10px; }
+
+        .hero-section {
+            /* Removed the ugly blue slate filter, restored original crisp dark overlay */
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=2000&q=80');
+            height: 60vh; min-height: 500px; background-size: cover; background-position: center; 
+            color: white; display: flex; flex-direction: column; justify-content: center; 
+            align-items: center; text-align: center; padding-top: 60px;
+        }
+        .hero-section h1 { font-size: 4rem; font-weight: 800; margin-bottom: 1rem; letter-spacing: -0.03em; line-height: 1.1;}
+        .hero-section p { font-size: 1.25rem; font-weight: 500; margin-bottom: 2.5rem; color: #e2e8f0; max-width: 700px;}
+        
+        .hero-btns { display: flex; gap: 15px; }
+        .btn-hero-primary { background: var(--primary); color: white; padding: 14px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; transition: 0.3s; font-size: 1.05rem; box-shadow: 0 10px 20px rgba(46, 125, 50, 0.3);}
+        .btn-hero-primary:hover { transform: translateY(-3px); background: var(--primary-dark); box-shadow: 0 15px 25px rgba(27, 67, 50, 0.4);} 
+        .btn-hero-secondary { background: rgba(255,255,255,0.1); border: 2px solid white; color: white; padding: 12px 32px; text-decoration: none; border-radius: 12px; font-weight: 700; transition: 0.3s; backdrop-filter: blur(5px); font-size: 1.05rem;}
+        .btn-hero-secondary:hover { background: rgba(255,255,255,0.2); transform: translateY(-3px); }
+
+        .cards-container {
+            max-width: 1200px; margin: -80px auto 60px; display: grid; 
+            grid-template-columns: repeat(3, 1fr); gap: 30px; padding: 0 20px; 
+            position: relative; z-index: 10;
+        }
+        .action-card {
+            background: white; padding: 40px 30px; border-radius: 24px; text-align: center; 
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-decoration: none; color: inherit; border: 1px solid rgba(0,0,0,0.03);
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .action-card:hover { transform: translateY(-15px); box-shadow: 0 30px 60px rgba(0,0,0,0.12); border-color: rgba(46, 125, 50, 0.3); }
+        .action-card i { font-size: 3.5rem; color: var(--primary); margin-bottom: 20px; }
+        .action-card h2 { margin: 0 0 15px 0; font-size: 1.5rem; color: var(--text-dark); font-weight: 800;}
+        .action-card p { color: var(--text-muted); font-size: 1rem; margin-bottom: 25px; }
+        .action-card span { color: var(--primary); font-weight: 700; display: flex; align-items: center; gap: 6px; margin-top: auto;}
+
+        .farms-section { max-width: 1200px; margin: 0 auto 80px; padding: 0 20px; }
+        .section-title { color: var(--text-dark); padding-bottom: 15px; margin-bottom: 30px; display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 2rem;}
+        
+        .farm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; }
+        .farm-card {
+            background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.04); 
+            border-left: 6px solid var(--primary); transition: 0.3s; border: 1px solid #f1f5f9; border-left-width: 6px;
+        }
+        .farm-card:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.08); }
+        .farm-card h3 { margin: 0 0 15px; color: var(--text-dark); font-size: 1.5rem; font-weight: 800;}
+        .crop-tag { background: var(--primary-light); color: var(--primary); padding: 8px 16px; border-radius: 50px; font-size: 0.9rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;}
+        .btn-load-farm { display: block; text-align: center; background: #f8fafc; color: var(--primary); text-decoration: none; padding: 14px; border-radius: 12px; font-weight: 700; margin-top: 25px; transition: 0.3s; border: 1px solid #e2e8f0;}
+        .btn-load-farm:hover { background: var(--primary-light); border-color: #bbf7d0;}
+
+        .empty-state { text-align: center; padding: 60px 20px; background: white; border-radius: 24px; border: 2px dashed #cbd5e1; }
+        .empty-state i { font-size: 4.5rem; color: #94a3b8; margin-bottom: 15px; }
+        .empty-state h3 { color: var(--text-dark); margin: 0 0 10px; font-size: 1.5rem;}
+        .empty-state p { color: var(--text-muted); margin: 0 0 25px; font-size: 1.05rem;}
+        .btn-empty { background: var(--primary); color: white; padding: 12px 24px; text-decoration: none; border-radius: 10px; font-weight: bold; transition: 0.3s; display: inline-block;}
+        .btn-empty:hover { background: var(--primary-dark); }
+
+        
+        .pillars-section { padding: 40px 20px 80px; }
+        .pillars-grid { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; }
+        .pillar-card { 
+            padding: 35px 30px; border-radius: 24px; background: white; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid #f1f5f9;
+            transition: 0.3s; display: flex; flex-direction: column; align-items: flex-start;
+        }
+        .pillar-card:hover { box-shadow: 0 20px 40px rgba(0,0,0,0.06); transform: translateY(-5px); }
+        .icon-bg { background: var(--primary-light); width: 60px; height: 60px; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px;}
+        .icon-bg i { font-size: 2rem; color: var(--primary); }
+        .pillar-card h3 { font-size: 1.3rem; font-weight: 800; color: var(--text-dark); margin-bottom: 12px;}
+        .pillar-card p { color: var(--text-muted); font-size: 1rem; margin: 0; line-height: 1.6;}
+
+        .showcase-section { max-width: 1200px; margin: 60px auto 100px; padding: 0 20px; }
+        .showcase-header { text-align: center; margin-bottom: 80px;}
+        .showcase-header h2 { font-size: 2.8rem; font-weight: 800; color: var(--text-dark); margin-bottom: 15px;}
+        .showcase-header p { font-size: 1.2rem; color: var(--text-muted); max-width: 650px; margin: 0 auto;}
+        
+        .showcase-row { display: flex; align-items: center; gap: 60px; margin-bottom: 120px; }
+        .showcase-row.reverse { flex-direction: row-reverse; }
+        .showcase-text { flex: 1; }
+        .showcase-text h3 { font-size: 2.2rem; font-weight: 800; color: var(--text-dark); margin-bottom: 20px; display: flex; align-items: center; gap: 12px;}
+        .showcase-text p { font-size: 1.15rem; color: var(--text-muted); margin-bottom: 30px; line-height: 1.7;}
+        .showcase-list { list-style: none; padding: 0; margin: 0; }
+        .showcase-list li { margin-bottom: 18px; display: flex; align-items: center; gap: 12px; font-size: 1.1rem; color: var(--text-main); font-weight: 500;}
+        .showcase-list i { color: var(--primary); font-size: 1.5rem; background: var(--primary-light); border-radius: 50%; padding: 4px;}
+        
+        /* The new Mockup Containers to fix the "Empty" feeling */
+        .mockup-container { flex: 1; position: relative; border-radius: 24px; overflow: hidden; box-shadow: 0 25px 50px rgba(0,0,0,0.15); border: 4px solid white;}
+        .mockup-img { width: 100%; height: 450px; object-fit: cover; display: block; }
+        
+        /* Floating Glass Badges over images */
+        .floating-badge {
+            position: absolute; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px);
+            padding: 16px 24px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            display: flex; align-items: center; gap: 15px; font-weight: 700; color: var(--text-dark);
+            font-size: 1.1rem; border: 1px solid rgba(255,255,255,0.5);
+        }
+        .badge-bottom-left { bottom: 30px; left: 30px; }
+        .badge-top-right { top: 30px; right: 30px; }
+        .floating-badge i { font-size: 2rem; }
+
+        .timeline-section { background: var(--primary-dark); padding: 100px 20px; color: white; text-align: center; border-radius: 40px; margin: 0 20px 100px;}
+        .timeline-section h2 { font-size: 2.8rem; font-weight: 800; margin-bottom: 60px;}
+        .timeline-grid { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 40px; position: relative;}
+        .timeline-step { position: relative; z-index: 2;}
+        .step-number { width: 60px; height: 60px; background: white; color: var(--primary-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; margin: 0 auto 25px; box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.1); }
+        .timeline-step h4 { font-size: 1.3rem; font-weight: 700; margin-bottom: 15px;}
+        .timeline-step p { color: #d1fae5; font-size: 1rem; line-height: 1.6;}
+        
+        .timeline-grid::before { content: ''; position: absolute; top: 30px; left: 12%; right: 12%; height: 2px; background: rgba(255,255,255,0.2); z-index: 1;}
+
+        .cta-banner { max-width: 1000px; margin: 0 auto 100px; background: linear-gradient(135deg, #f0fdf4, #dcfce7); padding: 60px 40px; border-radius: 30px; text-align: center; color: var(--primary-dark); box-shadow: 0 20px 40px rgba(22, 163, 74, 0.1); border: 1px solid #bbf7d0;}
+        .cta-banner h2 { font-size: 2.5rem; font-weight: 800; margin-bottom: 20px;}
+        .cta-banner p { font-size: 1.15rem; color: #166534; margin-bottom: 35px; max-width: 600px; margin-left: auto; margin-right: auto;}
+
+        footer { text-align: center; padding: 40px 20px; color: var(--text-muted); border-top: 1px solid #e2e8f0; background: white; font-weight: 500;}
+
+        @media(max-width: 900px) {
+            .cards-container, .showcase-row, .timeline-grid, .pillars-grid { grid-template-columns: 1fr; flex-direction: column !important; }
+            .hero-section h1 { font-size: 3rem; }
+            .timeline-grid::before { display: none; }
+            .timeline-section { border-radius: 0; margin: 0 0 60px; }
+            .mockup-container { width: 100%; }
+        }
     </style>
 </head>
-<body style="background: #f0f4f0; font-family: 'Segoe UI', sans-serif; margin: 0;">
+<body>
 
-    <!-- UNIFIED NAVBAR -->
     <nav class="navbar">
-        <a href="/" style="font-size: 1.5rem; font-weight: bold; color: #ffffff; text-decoration: none; display: flex; align-items: center; gap: 8px;">
+        <a href="/" class="nav-brand">
             <i class="ph-fill ph-leaf" style="color: #4ade80;"></i> CropEcho
         </a>
         <div class="nav-links">
@@ -31,7 +177,7 @@
             <div class="auth-divider"></div>
 
             {% if current_user.is_authenticated %}
-                <span style="color: #cbd5e1;"><b>{{ current_user.username }}</b></span>
+                <span style="color: #cbd5e1; font-weight: bold;">{{ current_user.username }}</span>
                 <a href="/dashboard" class="btn-nav-primary">Dashboard</a>
                 <a href="/logout" style="color: #fca5a5;">Logout</a>
             {% else %}
@@ -41,88 +187,201 @@
         </div>
     </nav>
 
-    <!-- HERO SECTION -->
-    <div class="hero-section" style="background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&w=1350&q=80'); height: 50vh; background-size: cover; background-position: center; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding-top: 60px;">
-        <h1 style="font-size: 3.5rem; margin-bottom: 0;"><i class="ph-fill ph-leaf"></i> CropEcho India</h1>
-        <p style="font-size: 1.2rem; margin-bottom: 2rem; color: #e2e8f0;">Tri-Modal AI Fusion: Satellite + Sensors + Vision</p>
+    <header class="hero-section">
+        <h1><i class="ph-fill ph-leaf"></i> CropEcho India</h1>
+        <p>Tri-Modal AI Fusion: Satellite Telemetry, Ground Sensors, and Computer Vision for precision agronomy.</p>
         
         {% if not current_user.is_authenticated %}
-        <div style="display: flex; gap: 15px;">
-            <a href="/register" style="background: #2e7d32; color: white; padding: 12px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; transition: 0.3s;">Get Started</a>
-            <a href="/login" style="background: rgba(255,255,255,0.1); border: 2px solid white; color: white; padding: 10px 28px; text-decoration: none; border-radius: 10px; font-weight: bold; transition: 0.3s; backdrop-filter: blur(5px);">Farmer Login</a>
+        <div class="hero-btns">
+            <a href="/register" class="btn-hero-primary">Get Started</a>
+            <a href="/login" class="btn-hero-secondary">Farmer Login</a>
         </div>
         {% endif %}
+    </header>
+
+    <div class="cards-container">
+        <a href="/dashboard" class="action-card">
+            <i class="ph-duotone ph-chart-line-up"></i>
+            <h2>Field Dashboard</h2>
+            <p>Explore the live map, view NDVI, or register a new farm boundary.</p>
+            <span>Explore Map <i class="ph-bold ph-arrow-right"></i></span>
+        </a>
+        <a href="/disease-check" class="action-card">
+            <i class="ph-duotone ph-scan"></i>
+            <h2>Disease Diagnosis</h2>
+            <p>Upload leaf images for ResNet-50 powered crop pathology identification.</p>
+            <span>Scan Leaf <i class="ph-bold ph-arrow-right"></i></span>
+        </a>
+        <a href="/grain-check" class="action-card">
+            <i class="ph-duotone ph-grains"></i>
+            <h2>Grain Assessment</h2>
+            <p>YOLOv5 analysis for seed counting, quality grading, and impurity checks.</p>
+            <span>Check Quality <i class="ph-bold ph-arrow-right"></i></span>
+        </a>
     </div>
 
-    <!-- CARDS -->
-    <main class="container" style="max-width: 1200px; margin: -50px auto 30px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; padding: 0 20px; position: relative; z-index: 10;">
-        <a href="/dashboard" style="text-decoration: none; color: inherit;">
-            <div class="card" style="background: white; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1); transition: 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
-                <i class="ph ph-chart-line-up" style="font-size: 3rem; color: #2e7d32;"></i>
-                <h2>Field Dashboard</h2>
-                <p>Explore the map, view NDVI, or register a new farm boundary.</p>
-                <span style="color: #2e7d32; font-weight: bold;">Explore Map →</span>
-            </div>
-        </a>
-        <a href="/disease-check" style="text-decoration: none; color: inherit;">
-            <div class="card" style="background: white; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1); transition: 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
-                <i class="ph ph-scan" style="font-size: 3rem; color: #2e7d32;"></i>
-                <h2>Disease Diagnosis</h2>
-                <p>Upload leaf images for ResNet-50 powered wheat disease identification.</p>
-                <span style="color: #2e7d32; font-weight: bold;">Scan Leaf →</span>
-            </div>
-        </a>
-        <a href="/grain-check" style="text-decoration: none; color: inherit;">
-            <div class="card" style="background: white; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1); transition: 0.3s;" onmouseover="this.style.transform='translateY(-10px)'" onmouseout="this.style.transform='translateY(0)'">
-                <i class="ph ph-grains" style="font-size: 3rem; color: #2e7d32;"></i>
-                <h2>Grain Assessment</h2>
-                <p>YOLOv5 analysis for seed counting and quality grading.</p>
-                <span style="color: #2e7d32; font-weight: bold;">Check Quality →</span>
-            </div>
-        </a>
-    </main>
-
-    <div style="max-width: 1200px; margin: 0 auto 50px; padding: 0 20px;">
-        <h2 style="color: #1b4332; border-bottom: 2px solid #c8e6c9; padding-bottom: 10px; margin-bottom: 20px;">
-            <i class="ph-fill ph-farm"></i> My Registered Farms
+    <section class="farms-section">
+        <h2 class="section-title">
+            <i class="ph-fill ph-farm" style="color: var(--primary);"></i> My Registered Farms
         </h2>
 
         {% if current_user.is_authenticated %}
             {% if farms and farms|length > 0 %}
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+            <div class="farm-grid">
                 {% for farm in farms %}
-                <div style="background: white; padding: 25px; border-radius: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 6px solid #2e7d32; transition: 0.3s;" onmouseover="this.style.transform='translateY(-5px)'" onmouseout="this.style.transform='translateY(0)'">
-                    <h3 style="margin: 0 0 10px; color: #1b4332; font-size: 1.4rem;">{{ farm.name }}</h3>
-                    <span style="background: #e8f5e9; color: #2e7d32; padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold;">
+                <div class="farm-card">
+                    <h3>{{ farm.name }}</h3>
+                    <span class="crop-tag">
                         <i class="ph-bold ph-plant"></i> {{ farm.crop_type }}
                     </span>
-                    <div style="margin-top: 25px;">
-                        <a href="/dashboard?farm_id={{ farm.id }}" style="display: block; text-align: center; background: #f0f4f0; color: #2e7d32; text-decoration: none; padding: 12px; border-radius: 10px; font-weight: bold; transition: 0.3s;" onmouseover="this.style.background='#e8f5e9'" onmouseout="this.style.background='#f0f4f0'">
-                            Load Field Data →
-                        </a>
-                    </div>
+                    <a href="/dashboard?farm_id={{ farm.id }}" class="btn-load-farm">
+                        Load Field Data &rarr;
+                    </a>
                 </div>
                 {% endfor %}
             </div>
             {% else %}
-            <div style="text-align: center; padding: 50px 20px; background: white; border-radius: 20px; border: 2px dashed #b0bec5;">
-                <i class="ph-fill ph-map-trifold" style="font-size: 4rem; color: #90a4ae; margin-bottom: 15px;"></i>
-                <h3 style="color: #37474f; margin: 0 0 10px;">No Farms Registered Yet</h3>
-                <p style="color: #607d8b; margin: 0 0 20px;">Draw a boundary on the map to save your first field.</p>
-                <a href="/dashboard" style="background: #2e7d32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: bold;">Open Map Explorer</a>
+            <div class="empty-state">
+                <i class="ph-fill ph-map-trifold"></i>
+                <h3>No Farms Registered Yet</h3>
+                <p>Draw a boundary on the map to save your first field and begin tracking.</p>
+                <a href="/dashboard" class="btn-empty">Open Map Explorer</a>
             </div>
             {% endif %}
         {% else %}
-        <div style="text-align: center; padding: 50px 20px; background: white; border-radius: 20px; border: 2px dashed #b0bec5;">
-            <i class="ph-fill ph-lock-key" style="font-size: 4rem; color: #90a4ae; margin-bottom: 15px;"></i>
-            <h3 style="color: #37474f; margin: 0 0 10px;">Sign in to view your farms</h3>
-            <p style="color: #607d8b; margin: 0 0 20px;">Securely manage and monitor your agricultural data.</p>
-            <a href="/login" style="background: #2e7d32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: bold;">Log In Now</a>
+        <div class="empty-state">
+            <i class="ph-fill ph-lock-key"></i>
+            <h3>Sign in to view your farms</h3>
+            <p>Securely manage and monitor your agricultural data across seasons.</p>
+            <a href="/login" class="btn-empty">Log In Now</a>
         </div>
         {% endif %}
-    </div>
+    </section>
 
-    <footer style="text-align: center; padding: 20px; color: #666; background: white; border-top: 1px solid #e0e0e0;">
+    <section class="pillars-section">
+        <div class="pillars-grid">
+            <div class="pillar-card">
+                <div class="icon-bg"><i class="ph-fill ph-warning-octagon"></i></div>
+                <h3>Identify Risks Early</h3>
+                <p>Pinpoint heat stress, frost warnings, and sudden moisture drops with real-time push notifications before they impact yield.</p>
+            </div>
+            <div class="pillar-card">
+                <div class="icon-bg"><i class="ph-fill ph-target"></i></div>
+                <h3>Simplify Analytics</h3>
+                <p>Turn complex satellite data, multispectral imagery, and thermodynamic equations into clear, actionable dashboards.</p>
+            </div>
+            <div class="pillar-card">
+                <div class="icon-bg"><i class="ph-fill ph-drop"></i></div>
+                <h3>Optimize Resources</h3>
+                <p>Track your Water Use Efficiency (WUE) and optimize irrigation to maximize harvest tonnage while saving resources.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="showcase-section">
+        <div class="showcase-header">
+            <h2>Portable Agronomy. Powerful Tech.</h2>
+            <p>CropEcho combines three distinct data layers to give you an unparalleled view of your field's health, threats, and potential.</p>
+        </div>
+
+        <!-- Feature 1: Satellite -->
+        <div class="showcase-row">
+            <div class="showcase-text">
+                <h3><i class="ph-fill ph-satellite" style="color: #3b82f6; background: transparent;"></i> Live Satellite Analytics</h3>
+                <p>Skip the daily field trips. Stay updated on plant health and soil conditions with continuous remote sensing data from Sentinel-2.</p>
+                <ul class="showcase-list">
+                    <li><i class="ph-bold ph-check"></i> View NDVI vegetation indices remotely.</li>
+                    <li><i class="ph-bold ph-check"></i> Track simulated soil moisture variations.</li>
+                    <li><i class="ph-bold ph-check"></i> Draw custom boundaries to save field data.</li>
+                </ul>
+            </div>
+            <div class="mockup-container">
+                <!-- Rich Unsplash imagery of a field instead of an empty box -->
+                <img src="https://images.unsplash.com/photo-1495107334309-fcf20504a5ab?auto=format&fit=crop&w=1000&q=80" alt="Aerial Farm" class="mockup-img">
+                <div class="floating-badge badge-bottom-left">
+                    <i class="ph-fill ph-target" style="color: var(--primary);"></i> Live NDVI: 0.65 (Healthy)
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature 2: Yield & Physics -->
+        <div class="showcase-row reverse">
+            <div class="showcase-text">
+                <h3><i class="ph-fill ph-thermometer" style="color: #f59e0b; background: transparent;"></i> Thermodynamic Yield Engine</h3>
+                <p>Plants don't use calendars; they use heat. Our proprietary physics engine tracks Growing Degree Days (GDD) to calculate exact biological age.</p>
+                <ul class="showcase-list">
+                    <li><i class="ph-bold ph-check"></i> Accurate Phenology (Growth Stage) tracking.</li>
+                    <li><i class="ph-bold ph-check"></i> AI projected yields adjusted for heat penalties.</li>
+                    <li><i class="ph-bold ph-check"></i> Live ESG Sustainability and Water Efficiency.</li>
+                </ul>
+            </div>
+            <div class="mockup-container">
+                <img src="https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1000&q=80" alt="Wheat close up" class="mockup-img">
+                <div class="floating-badge badge-top-right">
+                    <i class="ph-fill ph-chart-line-up" style="color: #f59e0b;"></i> Est. Yield: 4.5 t/ha
+                </div>
+            </div>
+        </div>
+
+        <!-- Feature 3: Vision AI -->
+        <div class="showcase-row">
+            <div class="showcase-text">
+                <h3><i class="ph-fill ph-camera" style="color: #8b5cf6; background: transparent;"></i> True Fusion AI Diagnostics</h3>
+                <p>When you spot a problem, snap a photo. Our RAG-enabled LLM cross-references your photo with live local weather to diagnose the exact issue.</p>
+                <ul class="showcase-list">
+                    <li><i class="ph-bold ph-check"></i> ResNet-50 powered disease identification.</li>
+                    <li><i class="ph-bold ph-check"></i> Agronomist-grade advice generated via RAG.</li>
+                    <li><i class="ph-bold ph-check"></i> Automated risk logging directly to your registry.</li>
+                </ul>
+            </div>
+            <div class="mockup-container">
+                <img src="https://images.unsplash.com/photo-1592982537447-6f2305c8e41e?auto=format&fit=crop&w=1000&q=80" alt="Agronomist checking leaf" class="mockup-img">
+                <div class="floating-badge badge-bottom-left">
+                    <i class="ph-fill ph-shield-check" style="color: #8b5cf6;"></i> Scan Complete: No Pathogens
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="timeline-section">
+        <h2>Simplify Farming in 4 Steps</h2>
+        <div class="timeline-grid">
+            <div class="timeline-step">
+                <div class="step-number">1</div>
+                <h4>Map Your Field</h4>
+                <p>Search your location and draw your farm's boundary to establish a digital twin.</p>
+            </div>
+            <div class="timeline-step">
+                <div class="step-number">2</div>
+                <h4>Monitor Remotely</h4>
+                <p>Check the dashboard for live NDVI, simulated soil moisture, and weather alerts.</p>
+            </div>
+            <div class="timeline-step">
+                <div class="step-number">3</div>
+                <h4>Scan for Risks</h4>
+                <p>Upload leaf images when anomalies appear to get instant AI diagnostics.</p>
+            </div>
+            <div class="timeline-step">
+                <div class="step-number">4</div>
+                <h4>Optimize Harvest</h4>
+                <p>Use the GDD and Water Efficiency scores to perfectly time your irrigation and harvest.</p>
+            </div>
+        </div>
+    </section>
+
+    <section style="background: var(--bg-color); padding: 0 20px;">
+        <div class="cta-banner">
+            <h2>Ready to Digitize Your Farm?</h2>
+            <p>Join CropEcho today. Monitor your fields remotely, optimize your resources, and protect your yield with our full suite of AI tools.</p>
+            {% if not current_user.is_authenticated %}
+                <a href="/register" class="btn-hero-primary" style="font-size: 1.1rem; padding: 16px 40px; border: none;">Create Free Account</a>
+            {% else %}
+                <a href="/dashboard" class="btn-hero-primary" style="font-size: 1.1rem; padding: 16px 40px; border: none;">Go to Dashboard</a>
+            {% endif %}
+        </div>
+    </section>
+
+    <footer>
         <p>&copy; 2026 CropEcho Platform | Guntur, Andhra Pradesh</p>
     </footer>
 </body>

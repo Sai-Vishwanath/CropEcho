@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risk Registry | {{ farm.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <style>
+        .navbar { z-index: 1000 !important; position: sticky; top: 0; }
+        .registry-main { padding: 3rem 10% 5rem; max-width: 800px; margin: 0 auto; }
+        .log-card { background: white; border-radius: 16px; padding: 2rem; margin-bottom: 1.5rem; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border-left: 6px solid #2d6a4f; }
+        .log-card.threat { border-left-color: #ef4444; background: #fef2f2; }
+        .date-badge { display: inline-block; background: #e2e8f0; color: #475569; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-bottom: 1rem; }
+        .disease-tag { display: inline-block; background: #fee2e2; color: #991b1b; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 0.9rem; margin-bottom: 1rem;}
+        .healthy-tag { display: inline-block; background: #dcfce7; color: #166534; padding: 4px 12px; border-radius: 6px; font-weight: bold; font-size: 0.9rem; margin-bottom: 1rem;}
+    </style>
+</head>
+<body style="background-color: #f8fafc;">
+
+    <nav class="navbar">
+        <a href="/" class="brand"><i class="ph-fill ph-leaf"></i> CropEcho</a>
+        <div class="nav-links">
+            <a href="/dashboard?farm_id={{ farm.id }}">← Back to Dashboard</a>
+        </div>
+    </nav>
+
+    <main class="registry-main">
+        <h1 style="color: #1b4332; margin-bottom: 0.5rem;"><i class="ph-fill ph-notebook"></i> Risk Registry</h1>
+        <p style="color: #64748b; margin-bottom: 3rem;">Historical AI scan logs for <strong>{{ farm.name }}</strong></p>
+
+        {% if not scans %}
+            <div style="text-align: center; padding: 4rem; background: white; border-radius: 24px; border: 2px dashed #cbd5e1;">
+                <i class="ph-fill ph-folder-open" style="font-size: 4rem; color: #94a3b8; margin-bottom: 1rem;"></i>
+                <h3 style="color: #475569; margin:0;">No Scans Yet</h3>
+                <p style="color: #64748b;">Run a Fusion Scan from the dashboard to start building your registry.</p>
+            </div>
+        {% else %}
+            {% for scan in scans %}
+                <div class="log-card {% if scan.disease.lower() != 'healthy' %}threat{% endif %}">
+                    <div class="date-badge"><i class="ph-bold ph-calendar-blank"></i> {{ scan.timestamp.strftime('%B %d, %Y - %I:%M %p') }}</div>
+                    <br>
+                    
+                    {% if scan.disease.lower() == 'healthy' %}
+                        <div class="healthy-tag"><i class="ph-bold ph-check-circle"></i> {{ scan.disease | title }}</div>
+                    {% else %}
+                        <div class="disease-tag"><i class="ph-bold ph-warning"></i> {{ scan.disease | title }}</div>
+                    {% endif %}
+
+                    <h4 style="margin: 0 0 8px 0; color: #1e293b;">AI Agronomist Advice:</h4>
+                    <p style="color: #475569; line-height: 1.6; margin: 0; font-size: 0.95rem;">
+                        {{ scan.advice }}
+                    </p>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </main>
+
+</body>
+</html>

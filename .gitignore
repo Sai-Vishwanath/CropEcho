@@ -19,3 +19,17 @@ static/uploads/*
 chroma_db/
 
 Crop API Keys.txt
+
+# Machine Learning Model Weights
+*.pt
+*.pth
+*.h5
+*.onnx
+
+# System & Editor Files
+.DS_Store
+.vscode/
+.idea/
+
+# Logs
+*.log

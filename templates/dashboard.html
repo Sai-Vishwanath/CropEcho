@@ -47,10 +47,23 @@
         @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } }
         .fusion-alert { animation: pulse-red 2s infinite; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Push Notification (Toast) Styles */
+        .toast-container { position: fixed; top: 80px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast-card { background: white; border-left: 5px solid #ef4444; padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); min-width: 280px; transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); pointer-events: auto; }
+        .toast-card.show { transform: translateX(0); }
+        .toast-title { font-weight: 700; color: #1b4332; margin-bottom: 6px; font-size: 1rem; display: flex; align-items: center; gap: 8px; }
+        .toast-msg { font-size: 0.85rem; color: #475569; margin: 0; line-height: 1.4; }
+        .toast-card.warning { border-left-color: #f59e0b; }
+        .toast-card.danger { border-left-color: #ef4444; }
+
     </style>
 </head>
 <body>
     
+    <!-- Floating Toast Notification Container -->
+    <div id="toast-container" class="toast-container"></div>
+
     <div class="modal-overlay" id="modal-overlay"></div>
     <div id="registration-modal">
         <h3 style="margin-top:0; color: #1b4332;"><i class="ph-fill ph-plus-circle"></i> Register This Farm</h3>
@@ -153,6 +166,19 @@
                         Live Satellite View
                     </span>
                 </div>
+
+                <!-- NEW: Map Search Bar -->
+                <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+                    <div style="position: relative; flex: 1;">
+                        <i class="ph-bold ph-magnifying-glass" style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #64748b;"></i>
+                        <input type="text" id="location-search" placeholder="Search city or state (e.g., Punjab, Visakhapatnam)..." 
+                               style="width: 100%; box-sizing: border-box; padding: 0.8rem 1rem 0.8rem 2.5rem; border: 1px solid #cbd5e1; border-radius: 12px; font-family: inherit; font-size: 0.9rem;">
+                    </div>
+                    <button onclick="flyToLocation()" class="btn-jump" style="background: #1b4332; color: white; border: none; padding: 0 1.5rem; border-radius: 12px; cursor: pointer;">
+                        Search
+                    </button>
+                </div>
+                
                 
                 <div id="map"></div>
                 
@@ -180,10 +206,24 @@
                     <h1 id="live-moisture-text" style="font-size: 4rem; color: #2d6a4f; margin:0;">{{ moisture_val }}%</h1>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem;">
                     <div class="metric-badge"><small style="display:block; color: #6b7280;">Nitrogen</small><strong>{{ sensors.nitrogen }}</strong></div>
                     <div class="metric-badge"><small style="display:block; color: #6b7280;">Phosphorus</small><strong>{{ sensors.phosphorus }}</strong></div>
                     <div class="metric-badge"><small style="display:block; color: #6b7280;">Potassium</small><strong>{{ sensors.potassium }}</strong></div>
+
+                    <div class="metric-badge" style="background: #e8f5e9; border: 1px solid #2d6a4f;">
+                        <small style="display:block; color: #2d6a4f; font-weight:bold;">Est. Yield</small>
+                        <strong style="color: #1b4332;">{{ projected_yield }} t/ha</strong>
+                    </div>
+
+                    <div class="metric-badge" style="background: {% if sustainability.status == 'High Efficiency' %}#dcfce7{% elif sustainability.status == 'Average' %}#fef3c7{% else %}#fee2e2{% endif %}; border: 1px solid {% if sustainability.status == 'High Efficiency' %}#16a34a{% elif sustainability.status == 'Average' %}#d97706{% else %}#dc2626{% endif %};">
+                        <small style="display:block; color: #475569; font-weight:bold;">Water Efficiency</small>
+                        <strong style="color: #0f172a;">{{ sustainability.wue_score }} <span style="font-size: 0.7rem; color: #64748b;">kg/m³</span></strong>
+                        <span style="display: block; font-size: 0.7rem; margin-top: 4px; font-weight: bold; color: {% if sustainability.status == 'High Efficiency' %}#16a34a{% elif sustainability.status == 'Average' %}#d97706{% else %}#dc2626{% endif %};">
+                            {{ sustainability.status }}
+                        </span>
+                    </div>
+
                 </div>
 
                 <canvas id="moistureChart" style="margin-top: 2rem;"></canvas>
@@ -200,10 +240,19 @@
             {% endif %}
 
             <div class="dash-card" style="background: #fffbeb; border: 2px solid #f59e0b;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
-                    <h3 style="color: #b45309; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="ph-fill ph-brain"></i> True Fusion AI
-                    </h3>
+                
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                    
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <h3 style="color: #b45309; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="ph-fill ph-brain"></i> True Fusion AI
+                        </h3>
+                        {% if farm %}
+                        <a href="/farm/{{ farm.id }}/registry" style="font-size: 0.8rem; color: #92400e; text-decoration: underline;">
+                            View Risk Registry
+                        </a>
+                        {% endif %}
+                    </div>
                     
                     <label for="leaf-upload" class="btn-jump" style="background: #b45309; color: white; cursor: pointer; padding: 6px 12px; font-size: 0.8rem; border-radius: 8px;">
                         <i class="ph-bold ph-camera"></i> Scan Leaf
@@ -215,7 +264,7 @@
                     <i class="ph-bold ph-spinner-gap" style="animation: spin 1s linear infinite;"></i> Running Tri-Modal Analysis...
                 </div>
                 
-                <p id="ai-advice" style="margin:0; font-size: 1rem; color: #92400e; line-height: 1.6; transition: 0.3s;">
+                <p id="ai-advice" style="margin:0; font-size: 0.95rem; color: #92400e; line-height: 1.6; transition: 0.3s;">
                     {{ ai_advice }}
                 </p>
             </div>
@@ -231,10 +280,40 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@latest/dist/leaflet-geoman.min.js"></script>
     
+    
     <script>
         const lat = parseFloat("{{ lat }}") || 16.3067;
         const lon = parseFloat("{{ lon }}") || 80.4365;
         const ndviColor = '{{ ndvi_color }}';
+
+        // --- PUSH NOTIFICATION ENGINE ---
+        function showToast(title, message, type = 'danger') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast-card ${type}`;
+            
+            const iconColor = type === 'warning' ? '#f59e0b' : '#ef4444';
+            toast.innerHTML = `
+                <div class="toast-title">
+                    <i class="ph-fill ph-warning-circle" style="color: ${iconColor}; font-size: 1.2rem;"></i> ${title}
+                </div>
+                <p class="toast-msg">${message}</p>
+            `;
+            
+            container.appendChild(toast);
+            
+            // Trigger the slide-in animation
+            setTimeout(() => toast.classList.add('show'), 10);
+            
+            // Automatically remove it after 6 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 400);
+            }, 6000);
+        }
+
+        // Global flags to prevent spamming the user
+        let moistureAlertTriggered = false;
 
         // --- MAP INIT ---
         const map = L.map('map', { zoomControl: false }).setView([lat, lon], 14);
@@ -242,6 +321,43 @@
             attribution: 'Tiles &copy; Esri'
         }).addTo(map);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // NEW: Add transparent labels (Cities, States, Roads) over the satellite map
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+            pane: 'overlayPane',
+            zIndex: 10
+        }).addTo(map);
+
+        // --- MAP GEOCODING SEARCH ---
+        function flyToLocation() {
+            const query = document.getElementById('location-search').value;
+            if (!query) return;
+
+            // Use OpenStreetMap's free geocoding API
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        const searchLat = parseFloat(data[0].lat);
+                        const searchLon = parseFloat(data[0].lon);
+                        
+                        // Smoothly animate the map to the new location
+                        map.flyTo([searchLat, searchLon], 13, {
+                            animate: true,
+                            duration: 1.5 // 1.5 seconds travel time
+                        });
+                        
+                    } else {
+                        alert("Location not found. Try a broader search like 'Maharashtra, India'.");
+                    }
+                })
+                .catch(err => console.error("Search error:", err));
+        }
+
+        // Allow user to press "Enter" to search
+        document.getElementById('location-search').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') flyToLocation();
+        });
 
         map.pm.addControls({
             position: 'topleft', drawMarker: false, drawPolyline: false, drawCircle: false, 
@@ -334,6 +450,18 @@
                             const textElement = document.getElementById('live-moisture-text');
                             if (textElement) textElement.innerText = data.moisture + '%';
 
+                            // NEW: Smart Push Notification Logic
+                            if (data.moisture < 35 && !moistureAlertTriggered) {
+                                showToast(
+                                    "Critical Moisture Drop", 
+                                    `Soil moisture has fallen to ${data.moisture}%. Immediate irrigation recommended.`, 
+                                    "danger"
+                                );
+                                moistureAlertTriggered = true; // Lock the alert
+                            } else if (data.moisture >= 35) {
+                                moistureAlertTriggered = false; // Reset the lock if moisture recovers
+                            }
+
                             if (typeof myChart !== 'undefined') {
                                 const labels = myChart.data.labels;
                                 const points = myChart.data.datasets[0].data;
@@ -386,6 +514,14 @@
                 alert("Scan failed. Check terminal for errors.");
             });
         }
+
+        {% if weather_alert and weather_alert.active %}
+        setTimeout(() => {
+            showToast("{{ weather_alert.title }}", "{{ weather_alert.message }}", "{{ weather_alert.type }}");
+        }, 1500); 
+        {% endif %}
+
+
     </script>
 </body>
 </html>

@@ -25,6 +25,7 @@ app = Flask(__name__)
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 AGRO_API_KEY = os.getenv("AGRO_API_KEY")
 app.secret_key = os.getenv("SECRET_KEY")
+WEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
 
 client = Groq(api_key=GROQ_API_KEY)
 
@@ -65,6 +66,13 @@ class Farm(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     # Relationship: One farm can have many health records
     records = db.relationship('FieldRecord', backref='farm', lazy=True)
+
+class ScanHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    farm_id = db.Column(db.Integer, db.ForeignKey('farm.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    disease = db.Column(db.String(100))
+    advice = db.Column(db.Text)
 
 class FieldRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -154,63 +162,91 @@ def add_farm():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # 1. ALWAYS get the CURRENT user and their farms
+    # 1. Get the current user and their farms
     user = current_user 
     all_farms = user.farms if user.is_authenticated else []
     farm_id = request.args.get('farm_id')
     
-    # 2. Check if we are loading a specific farm or Free Exploring
+    # 2. Check if loading a specific farm profile or utilizing Free Explorer
     if farm_id:
         current_farm = Farm.query.get(farm_id)
         lat = current_farm.center_lat
         lon = current_farm.center_lon
         crop = current_farm.crop_type
+        # Extract sowing date if it exists, otherwise fall back to baseline default
+        sowing_date_str = current_farm.sowing_date.strftime("%Y-%m-%d") if getattr(current_farm, 'sowing_date', None) else "2026-01-15"
     else:
         lat = round(float(request.args.get('lat', 16.3067)), 3)
         lon = round(float(request.args.get('lon', 80.4365)), 3)
         crop = request.args.get('crop', 'Wheat')
         current_farm = None
+        sowing_date_str = "2026-01-15"
 
-    # 3. Get current sensor/satellite data
-    engine = CropEchoEngine(lat, lon, crop_type=crop, api_key=AGRO_API_KEY) 
-    sensors = engine.generate_sensor_data()
-    ndvi = engine.get_satellite_mock()
+    # Update this line to include weather_api_key
+    engine = CropEchoEngine(lat, lon, crop_type=crop, agro_api_key=AGRO_API_KEY, weather_api_key=WEATHER_API_KEY)
     
-    # Calculate Growth Stage ONCE
-    stage_name, stage_num = engine.get_growth_stage("2026-01-15") 
-    
-    # 4. AI Recommendation Logic
-    try:
-        prompt = f"Act as an Indian Agronomist. Analyze {crop} at {lat}, {lon}. Moisture: {sensors['soil_moisture']}%, NDVI: {ndvi}. Give 2-sentence advice."
-        completion = client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        ai_advice = completion.choices[0].message.content
-    except:
-        ai_advice = "AI advisor offline. Please check sensors manually."
+    # NEW: Run the weather scan!
+    weather_alert = engine.fetch_weather_alerts()
+    # Calculate Growth Stage dynamically
+    stage_name, stage_num = engine.get_growth_stage(sowing_date_str) 
 
-    # 5. Handle Database Saving & Fetching
+    # 3. Handle Telemetry & AI Logic without data cross-contamination
     if current_farm:
-        new_record = FieldRecord(
-            moisture=sensors['soil_moisture'],
-            ndvi=ndvi,
-            advice=ai_advice,
-            farm_id=current_farm.id
-        )
-        db.session.add(new_record)
-        db.session.commit()
-
+        # Fetch the absolute LATEST telemetry point written by your background simulation script
+        latest_record = FieldRecord.query.filter_by(farm_id=current_farm.id)\
+                                        .order_by(FieldRecord.timestamp.desc())\
+                                        .first()
+        
+        if latest_record:
+            # Use the exact state written by the background pipeline (prevents the graph dive)
+            sensors = {
+                "soil_moisture": latest_record.moisture,
+                "nitrogen": 15.0,        # Baselines for UI rendering
+                "phosphorus": 11.2,
+                "potassium": 21.3
+            }
+            ndvi = latest_record.ndvi
+            ai_advice = latest_record.advice if latest_record.advice else "System synchronized. Monitoring optimal growth conditions."
+        else:
+            # Fallback initialization state if a new farm has zero simulator rows yet
+            sensors = engine.generate_sensor_data()
+            ndvi = engine.get_satellite_mock()
+            ai_advice = "Initializing sensor links. Waiting for incoming telemetry..."
+            
+        # Fetch sequential history for chart rendering
         history = FieldRecord.query.filter_by(farm_id=current_farm.id)\
                                    .order_by(FieldRecord.timestamp.desc())\
                                    .limit(15).all()
     else:
+        # Free Explorer Mode: Generates synthetic dynamic calculations on-the-fly
+        sensors = engine.generate_sensor_data()
+        ndvi = engine.get_satellite_mock()
         history = []
+        
+        # Only query live LLM evaluations for unsaved coordinates to conserve API credits
+        try:
+            prompt = f"Act as an Indian Agronomist. Analyze structural state of {crop} at {lat}, {lon}. Moisture: {sensors['soil_moisture']}%, NDVI: {ndvi}. Provide a 2-sentence analytical summary."
+            completion = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            ai_advice = completion.choices[0].message.content
+        except:
+            ai_advice = "Real-time AI consultant offline. Check regional agronomy updates manually."
 
+
+    current_moisture = sensors['soil_moisture']
+    projected_yield = engine.predict_yield(current_moisture, ndvi)
+
+    # NEW: Run the Sustainability algorithm
+    sustainability = engine.get_sustainability_metrics(projected_yield)
+
+    
+    # Process sequential graph arrays cleanly
     history_data = [r.moisture for r in reversed(history)]
     history_labels = [r.timestamp.strftime("%H:%M:%S") for r in reversed(history)]
 
-    # 6. Send everything to the template (Cleaned Up)
+    # 4. Render clean unified state
     return render_template('dashboard.html', 
                            sensors=sensors, 
                            ndvi=ndvi, 
@@ -222,6 +258,9 @@ def dashboard():
                            history_labels=history_labels,
                            farm=current_farm,
                            all_farms=all_farms,
+                           weather_alert=weather_alert,
+                           projected_yield=projected_yield,
+                           sustainability=sustainability,
                            stage_name=stage_name, 
                            stage_num=stage_num)
 
@@ -311,17 +350,16 @@ def receive_sensor_data():
 
 # --- REAL-TIME POLLING ENDPOINT ---
 @app.route('/api/farm/<int:farm_id>/latest')
-def get_latest_farm_data(farm_id):
-    # Fetch the single newest record for this specific farm
+def get_latest_sensor_data(farm_id):
+    # THE FIX: Added .filter_by(farm_id=farm_id) so it only pulls data for the active dashboard
     latest_record = FieldRecord.query.filter_by(farm_id=farm_id).order_by(FieldRecord.timestamp.desc()).first()
     
     if latest_record:
         return jsonify({
             "moisture": latest_record.moisture,
-            "ndvi": latest_record.ndvi,
             "time": latest_record.timestamp.strftime("%H:%M:%S")
         })
-    return jsonify({"error": "No data found"}), 404
+    return jsonify({"error": "No data"})
 
 
 # --- SIMULATOR SYNC ENDPOINT ---
@@ -371,9 +409,17 @@ def fusion_scan(farm_id):
             
         # 5. Save this critical event to the Farm's Database History
         new_record = FieldRecord(
-            moisture=moisture, ndvi=ndvi, advice=f"DISEASE DETECTED: {disease} - {ai_advice}", farm_id=farm_id
+            moisture=moisture, 
+            ndvi=ndvi, 
+            advice=f"DISEASE DETECTED: {disease}. {ai_advice}", 
+            farm_id=farm_id
         )
         db.session.add(new_record)
+        db.session.commit()
+
+        # NEW: Save to Risk Registry
+        new_scan = ScanHistory(farm_id=farm_id, disease=disease , advice=ai_advice)
+        db.session.add(new_scan)
         db.session.commit()
         
         return jsonify({
@@ -383,5 +429,14 @@ def fusion_scan(farm_id):
         
     return jsonify({"error": "Invalid file"}), 400
 
+@app.route('/farm/<int:farm_id>/registry')
+def risk_registry(farm_id):
+    farm = Farm.query.get_or_404(farm_id)
+    # Fetch all past scans for this farm, newest first
+    scans = ScanHistory.query.filter_by(farm_id=farm_id).order_by(ScanHistory.timestamp.desc()).all()
+    return render_template('risk_registry.html', farm=farm, scans=scans)
+
+
 if __name__ == '__main__':
     app.run(debug=True)
+ 
